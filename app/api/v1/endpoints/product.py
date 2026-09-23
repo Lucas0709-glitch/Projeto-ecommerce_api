@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -51,27 +51,68 @@ def list_products(
     "/products/{product_id}",
     response_model=ProductResponse,
     summary="Buscar produto",
-    description="Retorna um produto específico pelo seu ID."
+    description="Retorna um produto específico pelo seu ID.",
+    responses={
+        404: {
+            "description": "Produto não encontrado"
+        }
+    }
 )
 def read_product(
     product_id: int,
     db: Session = Depends(get_db)
 ):
-    return get_product(db, product_id)
+    product = get_product(db, product_id)
+
+    if product is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Produto não encontrado"
+        )
+
+    return product
 
 
 
-@router.put("/products/{product_id}", response_model=ProductResponse)
+@router.put(
+    "/products/{product_id}",
+    response_model=ProductResponse,
+    summary="Atualizar produto",
+    description="Atualiza os dados de um produto existente pelo seu ID.",
+    responses={
+        404: {
+            "description": "Produto não encontrado"
+        }
+    }
+)
 def update_product_endpoint(
     product_id: int,
     product_data: ProductUpdate,
     db: Session = Depends(get_db)
 ):
-    return update_product(db, product_id, product_data)
+    product = update_product(db, product_id, product_data)
+
+    if product is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Produto não encontrado"
+        )
+
+    return product
 
 
 
-@router.delete("/products/{product_id}", response_model=ProductResponse)
+@router.delete(
+    "/products/{product_id}",
+    response_model=ProductResponse,
+    summary="Excluir produto",
+    description="Exclui um produto existente pelo seu ID.",
+    responses={
+        404: {
+            "description": "Produto não encontrado"
+        }
+    }
+)
 def delete_product_endpoint(
     product_id: int,
     db: Session = Depends(get_db)
