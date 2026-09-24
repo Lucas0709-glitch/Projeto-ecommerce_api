@@ -117,4 +117,12 @@ def delete_product_endpoint(
     product_id: int,
     db: Session = Depends(get_db)
 ):
-    return delete_product(db, product_id)
+    product = delete_product(db, product_id)
+
+    if product is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Produto não encontrado"
+        )
+
+    return product
