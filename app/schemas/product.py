@@ -16,17 +16,35 @@ class ProductCreate(BaseModel):
     )
 
 class ProductUpdate(BaseModel):
-    nome: str
-    descricao: str
-    preco: float
-    estoque: int
+    nome: str = Field(
+        description="Nome do produto"
+    )
+    descricao: str = Field(
+        description="Descrição detalhada do produto"
+    )
+    preco: float = Field(
+        description="Preço do produto"
+    )
+    estoque: int = Field(
+        description="Quantidade disponível em estoque"
+    )
 
 class ProductResponse(BaseModel):
-    id: int
-    nome: str
-    descricao: str
-    preco: float
-    estoque: int
+    id: int = Field(
+        description="Identificador único do produto"
+    )
+    nome: str = Field(
+        description="Nome do produto"
+    )
+    descricao: str = Field(
+        description="Descrição detalhada do produto"
+    )
+    preco: float = Field(
+        description="Preço do produto"
+    )
+    estoque: int = Field(
+        description="Quantidade disponível em estoque"
+    )
 
     class Config:
         from_attributes = True
