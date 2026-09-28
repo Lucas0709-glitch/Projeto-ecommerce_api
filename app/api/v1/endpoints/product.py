@@ -11,8 +11,9 @@ from app.crud.product import (
 )
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
 
-router = APIRouter()
-
+router = APIRouter(
+    tags=["Produtos"]
+)
 
 @router.post(
     "/products",

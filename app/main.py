@@ -6,10 +6,25 @@ from app.api.v1.endpoints.product import router as product_router
 
 init_db()
 
-app = FastAPI(title="E-commerce API")
+app = FastAPI(
+    title="E-commerce API",
+    description="API REST para gerenciamento de usuários, produtos e pedidos.",
+    version="1.0.0",
+    contact={
+        "name": "Lucas"
+    },
+    license_info={
+        "name": "MIT License"
+    }
+)
 
 
-@app.get("/")
+@app.get(
+    "/",
+    summary="Verificar status da API",
+    description="Retorna uma mensagem confirmando que a E-commerce API está em funcionamento.",
+    tags=["Status"]
+)
 def root():
     return {"message": "E-commerce API funcionando!"}
 

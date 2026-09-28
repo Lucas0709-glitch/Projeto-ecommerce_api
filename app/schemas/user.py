@@ -13,9 +13,15 @@ class UserCreate(BaseModel):
     )
 
 class UserResponse(BaseModel):
-    id: int
-    nome: str
-    email: str
+    id: int = Field(
+        description="Identificador único do usuário"
+    )
+    nome: str = Field(
+        description="Nome do usuário"
+    )
+    email: str = Field(
+        description="Endereço de e-mail do usuário"
+    )
 
     class Config:
         from_attributes = True
