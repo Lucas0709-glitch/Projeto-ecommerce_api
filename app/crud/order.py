@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
+from app.models.order_item import OrderItem
 from app.models.order import Order
 from app.schemas.order import OrderCreate
 
@@ -16,3 +18,29 @@ def create_order(db: Session, order: OrderCreate):
     db.refresh(db_order)
 
     return db_order
+
+def get_order(db: Session, order_id: int):
+    return db.query(Order).filter(Order.id == order_id).first()
+
+def update_order_total(db: Session, order_id: int):
+    total = (
+        db.query(
+            func.sum(
+                OrderItem.quantidade * OrderItem.preco_unitario
+            )
+        )
+        .filter(OrderItem.pedido_id == order_id)
+        .scalar()
+    )
+
+    order = get_order(db, order_id)
+
+    if order is None:
+        return None
+
+    order.total = total or 0
+
+    db.commit()
+    db.refresh(order)
+
+    return order

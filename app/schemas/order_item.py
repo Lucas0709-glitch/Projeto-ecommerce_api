@@ -9,6 +9,7 @@ class OrderItemCreate(BaseModel):
         description="Identificador do produto"
     )
     quantidade: int = Field(
+        gt=0,
         description="Quantidade do produto no pedido"
     )
 
