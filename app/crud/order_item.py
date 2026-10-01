@@ -21,3 +21,10 @@ def create_order_item(
     db.refresh(db_order_item)
 
     return db_order_item
+
+def get_order_items(db: Session, order_id: int):
+    return (
+        db.query(OrderItem)
+        .filter(OrderItem.pedido_id == order_id)
+        .all()
+    )

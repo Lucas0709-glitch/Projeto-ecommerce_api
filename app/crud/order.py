@@ -6,6 +6,7 @@ from app.models.order import Order
 from app.schemas.order import OrderCreate
 
 
+
 def create_order(db: Session, order: OrderCreate):
     db_order = Order(
         usuario_id=order.usuario_id,
@@ -44,3 +45,10 @@ def update_order_total(db: Session, order_id: int):
     db.refresh(order)
 
     return order
+
+def get_orders_by_user(db: Session, user_id: int):
+    return (
+        db.query(Order)
+        .filter(Order.usuario_id == user_id)
+        .all()
+    )
