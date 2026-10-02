@@ -9,6 +9,7 @@ from app.crud.user import get_user
 from app.crud.order_item import create_order_item, get_order_items
 from app.crud.product import get_product
 from app.crud.order import (
+    close_order,
     create_order,
     get_order,
     get_orders_by_user,
@@ -52,7 +53,13 @@ def register_order_item(
             status_code=404,
             detail="Pedido não encontrado"
         )
-    
+
+    if order.status == "fechado":
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível adicionar itens a um pedido fechado"
+        )
+        
     product = get_product(db, order_item.produto_id)
 
     if product is None:
@@ -147,3 +154,29 @@ def list_user_orders(
     return get_orders_by_user(db, user_id)
 
 
+@router.put(
+    "/orders/{order_id}/close",
+    response_model=OrderResponse,
+    summary="Fechar pedido",
+    description="Altera o status de um pedido aberto para fechado.",
+    responses={404: {"description": "Pedido não encontrado"}}
+)
+def close_order_endpoint(
+    order_id: int,
+    db: Session = Depends(get_db)
+):
+    order, error = close_order(db, order_id)
+
+    if error == "not_found":
+        raise HTTPException(
+            status_code=404,
+            detail="Pedido não encontrado"
+        )
+
+    if error == "already_closed":
+        raise HTTPException(
+            status_code=400,
+            detail="Pedido já está fechado"
+        )
+
+    return order

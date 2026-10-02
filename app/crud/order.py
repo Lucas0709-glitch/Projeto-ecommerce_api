@@ -52,3 +52,19 @@ def get_orders_by_user(db: Session, user_id: int):
         .filter(Order.usuario_id == user_id)
         .all()
     )
+
+def close_order(db: Session, order_id: int):
+    order = get_order(db, order_id)
+
+    if order is None:
+        return None, "not_found"
+
+    if order.status == "fechado":
+        return None, "already_closed"
+
+    order.status = "fechado"
+
+    db.commit()
+    db.refresh(order)
+
+    return order, None
