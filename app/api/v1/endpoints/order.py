@@ -28,10 +28,15 @@ router = APIRouter(
     summary="Cadastrar pedido",
     description="Cria um novo pedido para um usuário."
 )
-def register_order(
-    order: OrderCreate,
-    db: Session = Depends(get_db)
-):
+def register_order(order: OrderCreate, db: Session = Depends(get_db)):
+    user = get_user(db, order.usuario_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuário não encontrado"
+        )
+
     return create_order(db, order)
 
 
@@ -75,7 +80,6 @@ def register_order_item(
         )
 
     product.estoque -= order_item.quantidade
-    db.commit()
 
     created_item = create_order_item(
     db,

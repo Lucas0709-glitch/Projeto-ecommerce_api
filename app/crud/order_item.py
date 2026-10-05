@@ -17,7 +17,7 @@ def create_order_item(
     )
 
     db.add(db_order_item)
-    db.commit()
+    db.flush()
     db.refresh(db_order_item)
 
     return db_order_item
