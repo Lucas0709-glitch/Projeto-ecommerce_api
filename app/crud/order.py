@@ -41,7 +41,7 @@ def update_order_total(db: Session, order_id: int):
 
     order.total = total or 0
 
-    db.commit()
+    db.flush()
     db.refresh(order)
 
     return order

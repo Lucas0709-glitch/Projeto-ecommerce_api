@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, Numeric
+from sqlalchemy import ForeignKey, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -13,12 +13,12 @@ class OrderItem(Base):
     )
 
     pedido_id: Mapped[int] = mapped_column(
-        Integer,
+        ForeignKey("orders.id"),
         nullable=False
     )
 
     produto_id: Mapped[int] = mapped_column(
-        Integer,
+        ForeignKey("products.id"),
         nullable=False
     )
 

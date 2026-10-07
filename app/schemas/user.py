@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 class UserCreate(BaseModel):
     nome: str = Field(
+        min_length=1,
         description="Nome do usuário"
     )
     email: str = Field(

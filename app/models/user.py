@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -25,3 +25,5 @@ class User(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    pedidos = relationship("Order", back_populates="usuario")

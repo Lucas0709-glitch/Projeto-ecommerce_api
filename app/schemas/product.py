@@ -3,30 +3,38 @@ from pydantic import BaseModel, Field
 
 class ProductCreate(BaseModel):
     nome: str = Field(
-        description="Nome do produto"
+    min_length=1,
+    description="Nome do produto"
     )
     descricao: str = Field(
-        description="Descrição detalhada do produto"
+    min_length=1,
+    description="Descrição detalhada do produto"
     )
     preco: float = Field(
-        description="Preço do produto"
+    ge=0,
+    description="Preço do produto"
     )
     estoque: int = Field(
-        description="Quantidade disponível em estoque"
+    ge=0,
+    description="Quantidade disponível em estoque"
     )
 
 class ProductUpdate(BaseModel):
     nome: str = Field(
-        description="Nome do produto"
+    min_length=1,
+    description="Nome do produto"
     )
     descricao: str = Field(
-        description="Descrição detalhada do produto"
+    min_length=1,
+    description="Descrição detalhada do produto"
     )
     preco: float = Field(
-        description="Preço do produto"
+    ge=0,
+    description="Preço do produto"
     )
     estoque: int = Field(
-        description="Quantidade disponível em estoque"
+    ge=0,
+    description="Quantidade disponível em estoque"
     )
 
 class ProductResponse(BaseModel):

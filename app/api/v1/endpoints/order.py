@@ -88,9 +88,11 @@ def register_order_item(
     )
 
     update_order_total(
-        db,
-        order_item.pedido_id
-    )
+    db,
+    order_item.pedido_id
+)
+
+    db.commit()
 
     return created_item
 
