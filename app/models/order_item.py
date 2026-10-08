@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, Integer, Numeric
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -31,3 +31,6 @@ class OrderItem(Base):
         Numeric(10, 2),
         nullable=False
     )
+
+    pedido = relationship("Order", back_populates="itens")
+    produto = relationship("Product", back_populates="itens_pedidos")

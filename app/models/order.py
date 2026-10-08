@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -33,3 +33,6 @@ class Order(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    usuario = relationship("User", back_populates="pedidos")
+    itens = relationship("OrderItem", back_populates="pedido")

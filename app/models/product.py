@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, Integer, Numeric, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -23,3 +23,5 @@ class Product(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    itens_pedidos = relationship("OrderItem", back_populates="produto")
