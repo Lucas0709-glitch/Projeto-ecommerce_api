@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from uuid import uuid4
 
 from app.main import app
 
@@ -14,11 +15,12 @@ def test_rota_principal():
     }
 
 def test_cadastrar_usuario():
+    email = f"cadastro_{uuid4().hex}@example.com"
     response = client.post(
         "/users",
         json={
             "nome": "Usuario Teste",
-            "email": "teste_automatizado_190@example.com",
+            "email": email,
             "senha": "senha_teste_123"
         }
     )
@@ -26,14 +28,14 @@ def test_cadastrar_usuario():
     assert response.status_code == 201
     data = response.json()
     assert data["nome"] == "Usuario Teste"
-    assert data["email"] == "teste_automatizado@example.com"
+    assert data["email"] == email
     assert "id" in data
     assert "senha" not in data
     assert "senha_hash" not in data
 
 def test_impedir_email_duplicado():
-    email = "email_duplicado@example.com"
-
+    email = f"duplicado_{uuid4().hex}@example.com"
+    
     primeiro_usuario = client.post(
         "/users",
         json={
