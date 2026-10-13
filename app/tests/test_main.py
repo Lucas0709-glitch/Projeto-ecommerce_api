@@ -95,3 +95,24 @@ def test_impedir_email_duplicado():
 
     assert segundo_usuario.status_code == 400
     assert segundo_usuario.json()["detail"] == "E-mail já cadastrado"
+
+
+def test_cadastrar_produto():
+    response = client.post(
+        "/products",
+        json={
+            "nome": "Teclado de Teste",
+            "descricao": "Teclado para teste automatizado",
+            "preco": 150.0,
+            "estoque": 10
+        }
+    )
+
+    assert response.status_code == 201
+
+    data = response.json()
+    assert data["nome"] == "Teclado de Teste"
+    assert data["descricao"] == "Teclado para teste automatizado"
+    assert data["preco"] == 150.0
+    assert data["estoque"] == 10
+    assert "id" in data
