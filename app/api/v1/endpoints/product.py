@@ -11,6 +11,9 @@ from app.crud.product import (
 )
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
 
+from app.api.deps import get_current_user
+from app.models.user import User
+
 router = APIRouter(
     tags=["Produtos"]
 )
@@ -42,7 +45,8 @@ def register_product(
     description="Retorna todos os produtos cadastrados no catálogo."
 )
 def list_products(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     return get_products(db)
 

@@ -244,3 +244,217 @@ def test_cadastrar_pedido():
     assert data["status"] == "aberto"
     assert data["total"] == 0
     assert "id" in data
+
+
+def test_adicionar_produto_ao_pedido():
+    email = f"item_{uuid4().hex}@example.com"
+
+    cadastro_usuario = client.post(
+        "/users",
+        json={
+            "nome": "Usuario do Pedido",
+            "email": email,
+            "senha": "senha_teste_123"
+        }
+    )
+    assert cadastro_usuario.status_code == 201
+    usuario_id = cadastro_usuario.json()["id"]
+
+    cadastro_produto = client.post(
+        "/products",
+        json={
+            "nome": "Produto para Pedido",
+            "descricao": "Produto para testar pedido",
+            "preco": 20.0,
+            "estoque": 10
+        }
+    )
+    assert cadastro_produto.status_code == 201
+    produto_id = cadastro_produto.json()["id"]
+
+    cadastro_pedido = client.post(
+        "/orders",
+        json={"usuario_id": usuario_id}
+    )
+    assert cadastro_pedido.status_code == 201
+    pedido_id = cadastro_pedido.json()["id"]
+
+    response = client.post(
+        "/orders/items",
+        json={
+            "pedido_id": pedido_id,
+            "produto_id": produto_id,
+            "quantidade": 3
+        }
+    )
+
+    assert response.status_code == 201
+
+    item = response.json()
+    assert item["pedido_id"] == pedido_id
+    assert item["produto_id"] == produto_id
+    assert item["quantidade"] == 3
+    assert item["preco_unitario"] == 20.0
+
+    produto_atualizado = client.get(f"/products/{produto_id}")
+    assert produto_atualizado.status_code == 200
+    assert produto_atualizado.json()["estoque"] == 7
+
+    pedido_atualizado = client.get(f"/orders/{pedido_id}")
+    assert pedido_atualizado.status_code == 200
+    assert pedido_atualizado.json()["total"] == 60.0
+
+
+def test_impedir_pedido_com_estoque_insuficiente():
+    email = f"estoque_{uuid4().hex}@example.com"
+
+    cadastro_usuario = client.post(
+        "/users",
+        json={
+            "nome": "Usuario Teste Estoque",
+            "email": email,
+            "senha": "senha_teste_123"
+        }
+    )
+    assert cadastro_usuario.status_code == 201
+    usuario_id = cadastro_usuario.json()["id"]
+
+    cadastro_produto = client.post(
+        "/products",
+        json={
+            "nome": "Produto com Estoque Limitado",
+            "descricao": "Teste de estoque insuficiente",
+            "preco": 10.0,
+            "estoque": 2
+        }
+    )
+    assert cadastro_produto.status_code == 201
+    produto_id = cadastro_produto.json()["id"]
+
+    cadastro_pedido = client.post(
+        "/orders",
+        json={"usuario_id": usuario_id}
+    )
+    assert cadastro_pedido.status_code == 201
+    pedido_id = cadastro_pedido.json()["id"]
+
+    response = client.post(
+        "/orders/items",
+        json={
+            "pedido_id": pedido_id,
+            "produto_id": produto_id,
+            "quantidade": 3
+        }
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Estoque insuficiente"
+
+    produto_atualizado = client.get(f"/products/{produto_id}")
+    assert produto_atualizado.json()["estoque"] == 2
+
+
+def test_impedir_pedido_para_usuario_inexistente():
+    response = client.post(
+        "/orders",
+        json={"usuario_id": 999999}
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Usuário não encontrado"
+
+
+def test_impedir_adicionar_produto_inexistente():
+    email = f"produto_inexistente_{uuid4().hex}@example.com"
+
+    cadastro_usuario = client.post(
+        "/users",
+        json={
+            "nome": "Usuario Teste",
+            "email": email,
+            "senha": "senha_teste_123"
+        }
+    )
+    assert cadastro_usuario.status_code == 201
+    usuario_id = cadastro_usuario.json()["id"]
+
+    cadastro_pedido = client.post(
+        "/orders",
+        json={"usuario_id": usuario_id}
+    )
+    assert cadastro_pedido.status_code == 201
+    pedido_id = cadastro_pedido.json()["id"]
+
+    response = client.post(
+        "/orders/items",
+        json={
+            "pedido_id": pedido_id,
+            "produto_id": 999999,
+            "quantidade": 1
+        }
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Produto não encontrado"
+
+
+def test_impedir_adicionar_item_a_pedido_fechado():
+    email = f"pedido_fechado_{uuid4().hex}@example.com"
+
+    cadastro_usuario = client.post(
+        "/users",
+        json={
+            "nome": "Usuario Pedido Fechado",
+            "email": email,
+            "senha": "senha_teste_123"
+        }
+    )
+    assert cadastro_usuario.status_code == 201
+    usuario_id = cadastro_usuario.json()["id"]
+
+    cadastro_produto = client.post(
+        "/products",
+        json={
+            "nome": "Produto Pedido Fechado",
+            "descricao": "Teste de pedido fechado",
+            "preco": 30.0,
+            "estoque": 5
+        }
+    )
+    assert cadastro_produto.status_code == 201
+    produto_id = cadastro_produto.json()["id"]
+
+    cadastro_pedido = client.post(
+        "/orders",
+        json={"usuario_id": usuario_id}
+    )
+    assert cadastro_pedido.status_code == 201
+    pedido_id = cadastro_pedido.json()["id"]
+
+    fechamento = client.put(f"/orders/{pedido_id}/close")
+    assert fechamento.status_code == 200
+    assert fechamento.json()["status"] == "fechado"
+
+    response = client.post(
+        "/orders/items",
+        json={
+            "pedido_id": pedido_id,
+            "produto_id": produto_id,
+            "quantidade": 1
+        }
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Não é possível adicionar itens a um pedido fechado"
+    )
+
+    produto_atualizado = client.get(f"/products/{produto_id}")
+    assert produto_atualizado.json()["estoque"] == 5
+
+
+def test_fechar_pedido_inexistente():
+    response = client.put("/orders/999999/close")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Pedido não encontrado"
