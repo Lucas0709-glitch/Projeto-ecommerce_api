@@ -1,3 +1,5 @@
+import pytest
+
 from fastapi.testclient import TestClient
 from uuid import uuid4
 from sqlalchemy import create_engine
@@ -42,6 +44,39 @@ app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
+def obter_token():
+    email = f"teste_{uuid4().hex}@example.com"
+    senha = "TesteSenha123!"
+
+    cadastro = client.post(
+        "/users",
+        json={
+            "nome": "Usuario Teste",
+            "email": email,
+            "senha": senha,
+        },
+    )
+    assert cadastro.status_code == 201
+
+    resposta = client.post(
+        "/auth/login",
+        data={
+            "username": email,
+            "password": senha,
+        },
+    )
+    assert resposta.status_code == 200
+
+    return resposta.json()["access_token"]
+
+
+def headers_autenticacao():
+    token = obter_token()
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest.fixture
+def auth_headers():
+    return headers_autenticacao()
 
 def test_rota_principal():
     response = client.get("/")
@@ -99,33 +134,62 @@ def test_impedir_email_duplicado():
 
 def test_cadastrar_produto():
     response = client.post(
-        "/products",
-        json={
-            "nome": "Teclado de Teste",
-            "descricao": "Teclado para teste automatizado",
-            "preco": 150.0,
-            "estoque": 10
-        }
+    "/products",
+    json={
+        "nome": "Teclado",
+        "descricao": "Teclado mecânico",
+        "preco": 150.0,
+        "estoque": 10
+    },
+    headers=headers_autenticacao(),
     )
 
     assert response.status_code == 201
 
     data = response.json()
-    assert data["nome"] == "Teclado de Teste"
-    assert data["descricao"] == "Teclado para teste automatizado"
+    assert data["nome"] == "Teclado"
+    assert data["descricao"] == "Teclado mecânico"
     assert data["preco"] == 150.0
     assert data["estoque"] == 10
     assert "id" in data
 
 
+
 def test_listar_produtos():
-    response = client.get("/products")
+    email = f"teste_{uuid4().hex}@example.com"
+    senha = "TesteSenha123!"
+
+    cadastro = client.post(
+        "/users",
+        json={
+            "nome": "Usuario Teste",
+            "email": email,
+            "senha": senha,
+        },
+    )
+    assert cadastro.status_code == 201
+
+    login = client.post(
+        "/auth/login",
+        data={
+            "username": email,
+            "password": senha,
+        },
+    )
+    assert login.status_code == 200
+
+    token = login.json()["access_token"]
+
+    response = client.get(
+        "/products",
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
-def test_consultar_produto_por_id():
+def test_consultar_produto_por_id(auth_headers):
     cadastro = client.post(
         "/products",
         json={
@@ -133,13 +197,14 @@ def test_consultar_produto_por_id():
             "descricao": "Mouse para teste automatizado",
             "preco": 80.0,
             "estoque": 15
-        }
+        },
+        headers=auth_headers
     )
 
     assert cadastro.status_code == 201
     produto_id = cadastro.json()["id"]
 
-    response = client.get(f"/products/{produto_id}")
+    response = client.get(f"/products/{produto_id}", headers=auth_headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -147,7 +212,7 @@ def test_consultar_produto_por_id():
     assert data["nome"] == "Mouse de Teste"
 
 
-def test_excluir_produto():
+def test_excluir_produto(auth_headers):
     cadastro = client.post(
         "/products",
         json={
@@ -155,21 +220,22 @@ def test_excluir_produto():
             "descricao": "Produto criado para testar a exclusão",
             "preco": 25.0,
             "estoque": 5
-        }
+        },
+        headers=auth_headers
     )
 
     assert cadastro.status_code == 201
     produto_id = cadastro.json()["id"]
 
-    response = client.delete(f"/products/{produto_id}")
+    response = client.delete(f"/products/{produto_id}", headers=auth_headers)
 
     assert response.status_code in (200, 204)
 
-    consulta = client.get(f"/products/{produto_id}")
+    consulta = client.get(f"/products/{produto_id}", headers=auth_headers)
     assert consulta.status_code == 404
 
 
-def test_atualizar_produto():
+def test_atualizar_produto(auth_headers):
     cadastro = client.post(
         "/products",
         json={
@@ -177,7 +243,8 @@ def test_atualizar_produto():
             "descricao": "Modelo antigo",
             "preco": 100.0,
             "estoque": 10
-        }
+        },
+        headers=auth_headers
     )
 
     assert cadastro.status_code == 201
@@ -190,7 +257,8 @@ def test_atualizar_produto():
             "descricao": "Modelo atualizado",
             "preco": 120.0,
             "estoque": 15
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 200
@@ -203,7 +271,7 @@ def test_atualizar_produto():
     assert data["estoque"] == 15
 
 
-def test_cadastrar_produto_com_dados_invalidos():
+def test_cadastrar_produto_com_dados_invalidos(auth_headers):
     response = client.post(
         "/products",
         json={
@@ -211,7 +279,8 @@ def test_cadastrar_produto_com_dados_invalidos():
             "descricao": "Teste de preço negativo",
             "preco": -10.0,
             "estoque": 5
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 422
@@ -246,7 +315,7 @@ def test_cadastrar_pedido():
     assert "id" in data
 
 
-def test_adicionar_produto_ao_pedido():
+def test_adicionar_produto_ao_pedido(auth_headers):
     email = f"item_{uuid4().hex}@example.com"
 
     cadastro_usuario = client.post(
@@ -267,7 +336,8 @@ def test_adicionar_produto_ao_pedido():
             "descricao": "Produto para testar pedido",
             "preco": 20.0,
             "estoque": 10
-        }
+        },
+        headers=auth_headers
     )
     assert cadastro_produto.status_code == 201
     produto_id = cadastro_produto.json()["id"]
@@ -296,7 +366,9 @@ def test_adicionar_produto_ao_pedido():
     assert item["quantidade"] == 3
     assert item["preco_unitario"] == 20.0
 
-    produto_atualizado = client.get(f"/products/{produto_id}")
+    produto_atualizado = client.get(
+        f"/products/{produto_id}", headers=auth_headers
+    )
     assert produto_atualizado.status_code == 200
     assert produto_atualizado.json()["estoque"] == 7
 
@@ -305,7 +377,7 @@ def test_adicionar_produto_ao_pedido():
     assert pedido_atualizado.json()["total"] == 60.0
 
 
-def test_impedir_pedido_com_estoque_insuficiente():
+def test_impedir_pedido_com_estoque_insuficiente(auth_headers):
     email = f"estoque_{uuid4().hex}@example.com"
 
     cadastro_usuario = client.post(
@@ -326,7 +398,8 @@ def test_impedir_pedido_com_estoque_insuficiente():
             "descricao": "Teste de estoque insuficiente",
             "preco": 10.0,
             "estoque": 2
-        }
+        },
+        headers=auth_headers
     )
     assert cadastro_produto.status_code == 201
     produto_id = cadastro_produto.json()["id"]
@@ -350,7 +423,9 @@ def test_impedir_pedido_com_estoque_insuficiente():
     assert response.status_code == 400
     assert response.json()["detail"] == "Estoque insuficiente"
 
-    produto_atualizado = client.get(f"/products/{produto_id}")
+    produto_atualizado = client.get(
+        f"/products/{produto_id}", headers=auth_headers
+    )
     assert produto_atualizado.json()["estoque"] == 2
 
 
@@ -398,7 +473,7 @@ def test_impedir_adicionar_produto_inexistente():
     assert response.json()["detail"] == "Produto não encontrado"
 
 
-def test_impedir_adicionar_item_a_pedido_fechado():
+def test_impedir_adicionar_item_a_pedido_fechado(auth_headers):
     email = f"pedido_fechado_{uuid4().hex}@example.com"
 
     cadastro_usuario = client.post(
@@ -419,7 +494,8 @@ def test_impedir_adicionar_item_a_pedido_fechado():
             "descricao": "Teste de pedido fechado",
             "preco": 30.0,
             "estoque": 5
-        }
+        },
+        headers=auth_headers
     )
     assert cadastro_produto.status_code == 201
     produto_id = cadastro_produto.json()["id"]
@@ -449,7 +525,9 @@ def test_impedir_adicionar_item_a_pedido_fechado():
         "Não é possível adicionar itens a um pedido fechado"
     )
 
-    produto_atualizado = client.get(f"/products/{produto_id}")
+    produto_atualizado = client.get(
+        f"/products/{produto_id}", headers=auth_headers
+    )
     assert produto_atualizado.json()["estoque"] == 5
 
 

@@ -32,7 +32,8 @@ router = APIRouter(
 )
 def register_product(
     product: ProductCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     return create_product(db, product)
 
@@ -65,7 +66,8 @@ def list_products(
 )
 def read_product(
     product_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     product = get_product(db, product_id)
 
@@ -93,7 +95,8 @@ def read_product(
 def update_product_endpoint(
     product_id: int,
     product_data: ProductUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     product = update_product(db, product_id, product_data)
 
@@ -120,7 +123,8 @@ def update_product_endpoint(
 )
 def delete_product_endpoint(
     product_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     product = delete_product(db, product_id)
 
