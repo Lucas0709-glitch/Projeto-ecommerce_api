@@ -3,13 +3,12 @@ from sqlalchemy import func
 
 from app.models.order_item import OrderItem
 from app.models.order import Order
-from app.schemas.order import OrderCreate
 
 
 
-def create_order(db: Session, order: OrderCreate):
+def create_order(db: Session, usuario_id: int):
     db_order = Order(
-        usuario_id=order.usuario_id,
+        usuario_id=usuario_id,
         status="aberto",
         total=0
     )

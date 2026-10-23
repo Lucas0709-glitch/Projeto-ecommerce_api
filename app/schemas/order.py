@@ -1,11 +1,6 @@
 from pydantic import BaseModel, Field
 
 
-class OrderCreate(BaseModel):
-    usuario_id: int = Field(
-        description="Identificador do usuário que está realizando o pedido"
-    )
-
 
 class OrderResponse(BaseModel):
     id: int = Field(

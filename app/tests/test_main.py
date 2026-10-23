@@ -78,6 +78,26 @@ def headers_autenticacao():
 def auth_headers():
     return headers_autenticacao()
 
+def criar_produto(headers, preco=20.0, estoque=10):
+    response = client.post(
+        "/products",
+        json={
+            "nome": "Produto de Teste",
+            "descricao": "Produto criado em teste",
+            "preco": preco,
+            "estoque": estoque
+        },
+        headers=headers
+    )
+    assert response.status_code == 201
+    return response.json()["id"]
+
+
+def criar_pedido(headers):
+    response = client.post("/orders", headers=headers)
+    assert response.status_code == 201
+    return response.json()["id"]
+
 def test_rota_principal():
     response = client.get("/")
 
@@ -285,69 +305,20 @@ def test_cadastrar_produto_com_dados_invalidos(auth_headers):
 
     assert response.status_code == 422
 
-
-def test_cadastrar_pedido():
-    email = f"pedido_{uuid4().hex}@example.com"
-
-    cadastro_usuario = client.post(
-        "/users",
-        json={
-            "nome": "Usuario do Pedido",
-            "email": email,
-            "senha": "senha_teste_123"
-        }
-    )
-
-    assert cadastro_usuario.status_code == 201
-    usuario_id = cadastro_usuario.json()["id"]
-
-    response = client.post(
-        "/orders",
-        json={"usuario_id": usuario_id}
-    )
+def test_cadastrar_pedido(auth_headers):
+    response = client.post("/orders", headers=auth_headers)
 
     assert response.status_code == 201
 
     data = response.json()
-    assert data["usuario_id"] == usuario_id
     assert data["status"] == "aberto"
     assert data["total"] == 0
     assert "id" in data
 
 
 def test_adicionar_produto_ao_pedido(auth_headers):
-    email = f"item_{uuid4().hex}@example.com"
-
-    cadastro_usuario = client.post(
-        "/users",
-        json={
-            "nome": "Usuario do Pedido",
-            "email": email,
-            "senha": "senha_teste_123"
-        }
-    )
-    assert cadastro_usuario.status_code == 201
-    usuario_id = cadastro_usuario.json()["id"]
-
-    cadastro_produto = client.post(
-        "/products",
-        json={
-            "nome": "Produto para Pedido",
-            "descricao": "Produto para testar pedido",
-            "preco": 20.0,
-            "estoque": 10
-        },
-        headers=auth_headers
-    )
-    assert cadastro_produto.status_code == 201
-    produto_id = cadastro_produto.json()["id"]
-
-    cadastro_pedido = client.post(
-        "/orders",
-        json={"usuario_id": usuario_id}
-    )
-    assert cadastro_pedido.status_code == 201
-    pedido_id = cadastro_pedido.json()["id"]
+    produto_id = criar_produto(auth_headers, preco=20.0, estoque=10)
+    pedido_id = criar_pedido(auth_headers)
 
     response = client.post(
         "/orders/items",
@@ -355,7 +326,8 @@ def test_adicionar_produto_ao_pedido(auth_headers):
             "pedido_id": pedido_id,
             "produto_id": produto_id,
             "quantidade": 3
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 201
@@ -366,50 +338,17 @@ def test_adicionar_produto_ao_pedido(auth_headers):
     assert item["quantidade"] == 3
     assert item["preco_unitario"] == 20.0
 
-    produto_atualizado = client.get(
-        f"/products/{produto_id}", headers=auth_headers
-    )
-    assert produto_atualizado.status_code == 200
-    assert produto_atualizado.json()["estoque"] == 7
+    produto = client.get(f"/products/{produto_id}", headers=auth_headers)
+    assert produto.json()["estoque"] == 7
 
-    pedido_atualizado = client.get(f"/orders/{pedido_id}")
-    assert pedido_atualizado.status_code == 200
-    assert pedido_atualizado.json()["total"] == 60.0
+    pedido = client.get(f"/orders/{pedido_id}", headers=auth_headers)
+    assert pedido.status_code == 200
+    assert pedido.json()["total"] == 60.0
 
 
 def test_impedir_pedido_com_estoque_insuficiente(auth_headers):
-    email = f"estoque_{uuid4().hex}@example.com"
-
-    cadastro_usuario = client.post(
-        "/users",
-        json={
-            "nome": "Usuario Teste Estoque",
-            "email": email,
-            "senha": "senha_teste_123"
-        }
-    )
-    assert cadastro_usuario.status_code == 201
-    usuario_id = cadastro_usuario.json()["id"]
-
-    cadastro_produto = client.post(
-        "/products",
-        json={
-            "nome": "Produto com Estoque Limitado",
-            "descricao": "Teste de estoque insuficiente",
-            "preco": 10.0,
-            "estoque": 2
-        },
-        headers=auth_headers
-    )
-    assert cadastro_produto.status_code == 201
-    produto_id = cadastro_produto.json()["id"]
-
-    cadastro_pedido = client.post(
-        "/orders",
-        json={"usuario_id": usuario_id}
-    )
-    assert cadastro_pedido.status_code == 201
-    pedido_id = cadastro_pedido.json()["id"]
+    produto_id = criar_produto(auth_headers, preco=10.0, estoque=2)
+    pedido_id = criar_pedido(auth_headers)
 
     response = client.post(
         "/orders/items",
@@ -417,48 +356,19 @@ def test_impedir_pedido_com_estoque_insuficiente(auth_headers):
             "pedido_id": pedido_id,
             "produto_id": produto_id,
             "quantidade": 3
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Estoque insuficiente"
 
-    produto_atualizado = client.get(
-        f"/products/{produto_id}", headers=auth_headers
-    )
-    assert produto_atualizado.json()["estoque"] == 2
+    produto = client.get(f"/products/{produto_id}", headers=auth_headers)
+    assert produto.json()["estoque"] == 2
 
 
-def test_impedir_pedido_para_usuario_inexistente():
-    response = client.post(
-        "/orders",
-        json={"usuario_id": 999999}
-    )
-
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Usuário não encontrado"
-
-
-def test_impedir_adicionar_produto_inexistente():
-    email = f"produto_inexistente_{uuid4().hex}@example.com"
-
-    cadastro_usuario = client.post(
-        "/users",
-        json={
-            "nome": "Usuario Teste",
-            "email": email,
-            "senha": "senha_teste_123"
-        }
-    )
-    assert cadastro_usuario.status_code == 201
-    usuario_id = cadastro_usuario.json()["id"]
-
-    cadastro_pedido = client.post(
-        "/orders",
-        json={"usuario_id": usuario_id}
-    )
-    assert cadastro_pedido.status_code == 201
-    pedido_id = cadastro_pedido.json()["id"]
+def test_impedir_adicionar_produto_inexistente(auth_headers):
+    pedido_id = criar_pedido(auth_headers)
 
     response = client.post(
         "/orders/items",
@@ -466,7 +376,8 @@ def test_impedir_adicionar_produto_inexistente():
             "pedido_id": pedido_id,
             "produto_id": 999999,
             "quantidade": 1
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 404
@@ -474,40 +385,12 @@ def test_impedir_adicionar_produto_inexistente():
 
 
 def test_impedir_adicionar_item_a_pedido_fechado(auth_headers):
-    email = f"pedido_fechado_{uuid4().hex}@example.com"
+    produto_id = criar_produto(auth_headers, preco=30.0, estoque=5)
+    pedido_id = criar_pedido(auth_headers)
 
-    cadastro_usuario = client.post(
-        "/users",
-        json={
-            "nome": "Usuario Pedido Fechado",
-            "email": email,
-            "senha": "senha_teste_123"
-        }
+    fechamento = client.put(
+        f"/orders/{pedido_id}/close", headers=auth_headers
     )
-    assert cadastro_usuario.status_code == 201
-    usuario_id = cadastro_usuario.json()["id"]
-
-    cadastro_produto = client.post(
-        "/products",
-        json={
-            "nome": "Produto Pedido Fechado",
-            "descricao": "Teste de pedido fechado",
-            "preco": 30.0,
-            "estoque": 5
-        },
-        headers=auth_headers
-    )
-    assert cadastro_produto.status_code == 201
-    produto_id = cadastro_produto.json()["id"]
-
-    cadastro_pedido = client.post(
-        "/orders",
-        json={"usuario_id": usuario_id}
-    )
-    assert cadastro_pedido.status_code == 201
-    pedido_id = cadastro_pedido.json()["id"]
-
-    fechamento = client.put(f"/orders/{pedido_id}/close")
     assert fechamento.status_code == 200
     assert fechamento.json()["status"] == "fechado"
 
@@ -517,7 +400,8 @@ def test_impedir_adicionar_item_a_pedido_fechado(auth_headers):
             "pedido_id": pedido_id,
             "produto_id": produto_id,
             "quantidade": 1
-        }
+        },
+        headers=auth_headers
     )
 
     assert response.status_code == 400
@@ -525,14 +409,80 @@ def test_impedir_adicionar_item_a_pedido_fechado(auth_headers):
         "Não é possível adicionar itens a um pedido fechado"
     )
 
-    produto_atualizado = client.get(
-        f"/products/{produto_id}", headers=auth_headers
-    )
-    assert produto_atualizado.json()["estoque"] == 5
+    produto = client.get(f"/products/{produto_id}", headers=auth_headers)
+    assert produto.json()["estoque"] == 5
 
 
-def test_fechar_pedido_inexistente():
-    response = client.put("/orders/999999/close")
+def test_fechar_pedido_inexistente(auth_headers):
+    response = client.put("/orders/999999/close", headers=auth_headers)
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Pedido não encontrado"
+
+
+def test_pedidos_exigem_autenticacao():
+    assert client.post("/orders").status_code == 401
+    assert client.get("/orders").status_code == 401
+    assert client.get("/orders/1").status_code == 401
+    assert client.get("/orders/1/items").status_code == 401
+    assert client.put("/orders/1/close").status_code == 401
+
+    resposta = client.post(
+        "/orders/items",
+        json={"pedido_id": 1, "produto_id": 1, "quantidade": 1}
+    )
+    assert resposta.status_code == 401
+
+
+def test_usuario_nao_acessa_pedido_de_outro():
+    headers_a = headers_autenticacao()
+    headers_b = headers_autenticacao()
+
+    produto_id = criar_produto(headers_a)
+    pedido_id = criar_pedido(headers_a)
+
+    # O usuário B tenta mexer no pedido do usuário A
+    assert client.get(
+        f"/orders/{pedido_id}", headers=headers_b
+    ).status_code == 404
+
+    assert client.get(
+        f"/orders/{pedido_id}/items", headers=headers_b
+    ).status_code == 404
+
+    assert client.put(
+        f"/orders/{pedido_id}/close", headers=headers_b
+    ).status_code == 404
+
+    resposta = client.post(
+        "/orders/items",
+        json={
+            "pedido_id": pedido_id,
+            "produto_id": produto_id,
+            "quantidade": 1
+        },
+        headers=headers_b
+    )
+    assert resposta.status_code == 404
+
+    # O dono continua enxergando o pedido normalmente
+    assert client.get(
+        f"/orders/{pedido_id}", headers=headers_a
+    ).status_code == 200
+
+
+def test_listar_meus_pedidos():
+    headers_a = headers_autenticacao()
+    headers_b = headers_autenticacao()
+
+    assert client.get("/orders", headers=headers_a).json() == []
+
+    criar_pedido(headers_a)
+    criar_pedido(headers_a)
+
+    lista_a = client.get("/orders", headers=headers_a)
+    assert lista_a.status_code == 200
+    assert len(lista_a.json()) == 2
+
+    lista_b = client.get("/orders", headers=headers_b)
+    assert lista_b.json() == []
