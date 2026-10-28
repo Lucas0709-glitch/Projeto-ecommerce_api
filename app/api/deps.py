@@ -1,12 +1,10 @@
-import os
-from datetime import datetime, timezone
-
 import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
+from app.core.config import ALGORITHM, SECRET_KEY
 from app.db.session import SessionLocal
 from app.models.user import User
 
@@ -25,16 +23,8 @@ def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    secret_key = os.getenv("SECRET_KEY")
-
-    if not secret_key:
-        raise HTTPException(
-            status_code=500,
-            detail="Configuração de autenticação ausente",
-        )
-
     try:
-        payload = jwt.decode(token, secret_key, algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
 
         if user_id is None:
