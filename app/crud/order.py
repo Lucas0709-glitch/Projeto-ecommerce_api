@@ -2,14 +2,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.models.order_item import OrderItem
-from app.models.order import Order
-
+from app.models.order import Order, OrderStatus
 
 
 def create_order(db: Session, usuario_id: int):
     db_order = Order(
         usuario_id=usuario_id,
-        status="aberto",
+        status=OrderStatus.ABERTO,
         total=0
     )
 
@@ -58,10 +57,10 @@ def close_order(db: Session, order_id: int):
     if order is None:
         return None, "not_found"
 
-    if order.status == "fechado":
+    if order.status == OrderStatus.FECHADO:
         return None, "already_closed"
 
-    order.status = "fechado"
+    order.status = OrderStatus.FECHADO
 
     db.commit()
     db.refresh(order)

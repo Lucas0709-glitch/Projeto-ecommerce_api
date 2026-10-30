@@ -1,8 +1,11 @@
-from pydantic import BaseModel, Field
+from datetime import datetime
 
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class OrderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int = Field(
         description="Identificador único do pedido"
     )
@@ -15,6 +18,6 @@ class OrderResponse(BaseModel):
     total: float = Field(
         description="Valor total do pedido"
     )
-
-    class Config:
-        from_attributes = True
+    criado_em: datetime = Field(
+        description="Data e hora de criação do pedido"
+    )

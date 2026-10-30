@@ -165,3 +165,26 @@ def test_produtos_exigem_autenticacao(client):
     assert client.get("/products/1").status_code == 401
     assert client.put("/products/1", json=corpo).status_code == 401
     assert client.delete("/products/1").status_code == 401
+
+
+def test_impedir_excluir_produto_que_esta_em_pedido(
+    client, auth_headers, criar_produto, criar_pedido
+):
+    produto_id = criar_produto(auth_headers)
+    pedido_id = criar_pedido(auth_headers)
+
+    client.post(
+        "/orders/items",
+        json={"pedido_id": pedido_id, "produto_id": produto_id, "quantidade": 1},
+        headers=auth_headers,
+    )
+
+    response = client.delete(f"/products/{produto_id}", headers=auth_headers)
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "Produto já foi vendido e não pode ser excluído"
+    )
+
+    consulta = client.get(f"/products/{produto_id}", headers=auth_headers)
+    assert consulta.status_code == 200

@@ -1,9 +1,15 @@
 from datetime import datetime
+from enum import StrEnum
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import DateTime, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, utcnow
+
+
+class OrderStatus(StrEnum):
+    ABERTO = "aberto"
+    FECHADO = "fechado"
 
 
 class Order(Base):
@@ -31,7 +37,7 @@ class Order(Base):
 
     criado_em: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow
+        default=utcnow
     )
 
     usuario = relationship("User", back_populates="pedidos")

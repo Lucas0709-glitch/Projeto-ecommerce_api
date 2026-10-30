@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductUpdate
 
@@ -49,3 +50,11 @@ def delete_product(db: Session, product_id: int):
     db.commit()
 
     return db_product
+
+def product_has_orders(db: Session, product_id: int) -> bool:
+    return (
+        db.query(OrderItem)
+        .filter(OrderItem.produto_id == product_id)
+        .first()
+        is not None
+    )

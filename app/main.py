@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.db.init_db import init_db
@@ -6,7 +8,12 @@ from app.api.v1.endpoints.product import router as product_router
 from app.api.v1.endpoints.order import router as order_router
 from app.api.v1.endpoints.auth import router as auth_router
 
-init_db()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
 
 app = FastAPI(
     title="E-commerce API",
@@ -17,7 +24,8 @@ app = FastAPI(
     },
     license_info={
         "name": "MIT License"
-    }
+    },
+    lifespan=lifespan
 )
 
 

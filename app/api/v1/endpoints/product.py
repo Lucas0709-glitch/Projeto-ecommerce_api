@@ -7,6 +7,7 @@ from app.crud.product import (
     delete_product,
     get_product,
     get_products,
+    product_has_orders,
     update_product
 )
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
@@ -116,8 +117,8 @@ def update_product_endpoint(
     summary="Excluir produto",
     description="Exclui um produto existente pelo seu ID.",
     responses={
-        404: {
-            "description": "Produto não encontrado"
+        409: {
+            "description": "Produto já está em pedidos"
         }
     }
 )
@@ -126,7 +127,7 @@ def delete_product_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    product = delete_product(db, product_id)
+    product = get_product(db, product_id)
 
     if product is None:
         raise HTTPException(
@@ -134,4 +135,10 @@ def delete_product_endpoint(
             detail="Produto não encontrado"
         )
 
-    return product
+    if product_has_orders(db, product_id):
+        raise HTTPException(
+            status_code=409,
+            detail="Produto já foi vendido e não pode ser excluído"
+        )
+
+    return delete_product(db, product_id)

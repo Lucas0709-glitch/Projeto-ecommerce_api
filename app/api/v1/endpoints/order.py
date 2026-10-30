@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
+from app.models.order import OrderStatus
 
 from app.schemas.order import OrderResponse
 from app.schemas.order_item import OrderItemCreate, OrderItemResponse
@@ -76,7 +77,7 @@ def register_order_item(
 ):
     order = get_own_order_or_404(db, order_item.pedido_id, current_user)
 
-    if order.status == "fechado":
+    if order.status == OrderStatus.FECHADO:
         raise HTTPException(
             status_code=400,
             detail="Não é possível adicionar itens a um pedido fechado"

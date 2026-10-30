@@ -3,6 +3,8 @@ import os
 # Precisa vir ANTES de importar o app: define uma chave só para os testes
 os.environ.setdefault("SECRET_KEY", "chave-secreta-apenas-para-testes")
 
+os.environ.setdefault("DATABASE_URL", "sqlite://")
+
 from uuid import uuid4
 
 import pytest

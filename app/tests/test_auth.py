@@ -90,3 +90,17 @@ def test_acesso_com_token_de_usuario_inexistente(client):
 
     assert response.status_code == 401
     assert response.json()["detail"] == "Usuário não encontrado"
+
+
+def test_login_ignora_maiusculas_no_email(client, criar_usuario):
+    usuario = criar_usuario()
+
+    response = client.post(
+        "/auth/login",
+        data={
+            "username": usuario["email"].upper(),
+            "password": usuario["senha"],
+        },
+    )
+
+    assert response.status_code == 200
